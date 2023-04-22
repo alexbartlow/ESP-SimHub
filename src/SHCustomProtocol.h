@@ -2,6 +2,28 @@
 #define __SHCUSTOMPROTOCOL_H__
 
 #include <Arduino.h>
+#include <SPI.h>
+
+#include <TFT_eSPI.h> // Hardware-specific library
+
+TFT_eSPI tft = TFT_eSPI();       // Invoke custom library
+
+#define TFT_GREY 0x5AEB
+#define M_SIZE 1.3333
+
+
+// float ltx = 0;    // Saved x coord of bottom of needle
+// uint16_t osx = M_SIZE*120, osy = M_SIZE*120; // Saved x & y coords
+uint32_t updateTime = 0;       // time for next update
+
+// int old_analog =  -999; // Value last displayed
+
+// int value[6] = {0, 0, 0, 0, 0, 0};
+// int old_value[6] = { -1, -1, -1, -1, -1, -1};
+// int d = 0;
+
+int speed = 0;
+String gear = "N";
 
 class SHCustomProtocol {
 private:
@@ -31,41 +53,62 @@ public:
 
 	*/
 
+
 	// Called when starting the arduino (setup method in main sketch)
 	void setup() {
+		tft.init();
+  		tft.setRotation(3);
+  		tft.fillScreen(TFT_BLACK);
+
+  		updateTime = millis(); // Next update time
 	}
 
 	// Called when new data is coming from computer
 	void read() {
-		String full = "";
-		// EXAMPLE 1 - read the whole message and sent it back to simhub as debug message
-		// Protocol formula can be set in simhub to anything, it will just echo it
-		// -------------------------------------------------------
-		String message = FlowSerialReadStringUntil('\n'); 
-		full = "Message received : " + message;
-		FlowSerialDebugPrintLn(full);
-
-		/*
-		// -------------------------------------------------------
-		// EXAMPLE 2 - reads speed and gear from the message
-		// Protocol formula must be set in simhub to
-		// format([DataCorePlugin.GameData.NewData.SpeedKmh],'0') + ';' + isnull([DataCorePlugin.GameData.NewData.Gear],'N')
-		// -------------------------------------------------------
-		*/
-
-		int speed = FlowSerialReadStringUntil(';').toInt();
-		String gear = FlowSerialReadStringUntil('\n');
-
-		full = "Speed : " + String(speed);
-		FlowSerialDebugPrintLn(full);
-
-		full = "Gear : " + gear;
-		FlowSerialDebugPrintLn(full);
+		speed = FlowSerialReadStringUntil(';').toInt();
+		gear  = FlowSerialReadStringUntil(';');
 	}
 
 	// Called once per arduino loop, timing can't be predicted, 
 	// but it's called between each command sent to the arduino
 	void loop() {
+		if (updateTime <= millis()) {
+		//   tft.setCursor(20, 0);
+		//   tft.setTextFont(2);
+		//   tft.setTextSize(2);
+		//   tft.setTextColor(TFT_WHITE, TFT_BLACK);
+		//   tft.println("Test line 1");
+		//   tft.println("test line 2");
+		  // top line
+
+		  tft.drawRect(0,75,480,1,TFT_WHITE);
+		  tft.drawRect(75,0,1,75,TFT_WHITE);
+		  tft.drawRect(240,0,1,75,TFT_WHITE);
+		  tft.drawRect(405,0,1,75,TFT_WHITE);
+
+		  tft.drawRect(160,75,1,320-75,TFT_WHITE);
+		  tft.drawRect(480-160,75,1,320-75,TFT_WHITE);
+
+	      tft.drawRect(0,150,160,1, TFT_WHITE);
+		  tft.drawRect(480-160,150,160,1, TFT_WHITE);
+
+		  tft.drawRect(0,320 - 75,480, 1, TFT_WHITE);
+
+		  tft.setCursor(0,55,2);
+		  tft.setTextSize(1);
+		  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+		  tft.print("SPEED");
+
+
+		// 	FlowSerialDebugPrintLn("LOOP");
+    	  updateTime = millis() + 35; // Update emter every 35 milliseconds
+ 
+    		// Create a Sine wave for testing
+    		// d += 4; if (d >= 360) d = 0;
+    		// value[0] = 50 + 50 * sin((d + 0) * 0.0174532925);
+ 
+    		// plotNeedle(value[0], 0); // It takes between 2 and 12ms to replot the needle with zero delay
+  		}
 	}
 
 	// Called once between each byte read on arduino,
@@ -75,6 +118,8 @@ public:
 	// AVOID ANY INTERRUPTS DISABLE (serial data would be lost!!!)
 	void idle() {
 	}
+
 };
+
 
 #endif
